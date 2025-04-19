@@ -1,0 +1,43 @@
+name: Build and Release Alfred Workflow
+
+on:
+  push:
+    paths:
+      - "awesome-chatgpt-prompts/**"
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  package-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Prepare files and create .zip
+        run: |
+          mkdir -p dist
+          zip -r dist/PromptPilot.zip \
+            awesome-chatgpt-prompts \
+            4EC60211-ED6B-431B-ABC2-BEA54A9352FF.png \
+            info.plist \
+            prefs.plist
+
+          mv dist/PromptPilot.zip dist/PromptPilot.alfredworkflow
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d_%H-%M-%S')" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ steps.date.outputs.date }}
+          name: PromptPilot Release ${{ steps.date.outputs.date }}
+          body: |
+            Automated release of PromptPilot Alfred Workflow.
+          files: dist/PromptPilot.alfredworkflow
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

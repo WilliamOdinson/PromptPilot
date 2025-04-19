@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>bundleid</key>
+	<string></string>
+	<key>category</key>
+	<string>Tools</string>
+	<key>connections</key>
+	<dict>
+		<key>4EC60211-ED6B-431B-ABC2-BEA54A9352FF</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>81DF6708-722F-45CA-B380-BBF4FC11917C</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+	</dict>
+	<key>createdby</key>
+	<string>William</string>
+	<key>description</key>
+	<string>Quickly find and copy ChatGPT prompts with fuzzy matching.</string>
+	<key>disabled</key>
+	<false/>
+	<key>name</key>
+	<string>PromptPilot</string>
+	<key>objects</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>autopaste</key>
+				<false/>
+				<key>clipboardtext</key>
+				<string>{query}</string>
+				<key>ignoredynamicplaceholders</key>
+				<false/>
+				<key>transient</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.clipboard</string>
+			<key>uid</key>
+			<string>81DF6708-722F-45CA-B380-BBF4FC11917C</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<true/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>0</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>gptcharacter||gc</string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string>Processing...</string>
+				<key>script</key>
+				<string>#!/usr/bin/env python3
+import sys
+import csv
+import json
+
+# Threshold for score above which results are considered matches
+import os  # Import the os module to access environment variables
+
+# Use environment variable for threshold, fallback to a default if not set
+threshold = int(os.getenv('Fuzzy_Threshold', '60'))
+
+
+def levenshtein_distance(s1, s2):
+    """Calculate the Levenshtein distance between two strings.
+
+    Args:
+        s1 (str): First string to compare.
+        s2 (str): Second string to compare.
+
+    Returns:
+        int: The computed Levenshtein distance.
+    """
+    if len(s1) &lt; len(s2):
+        return levenshtein_distance(s2, s1)
+
+    if len(s2) == 0:
+        return len(s1)
+
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+
+    return previous_row[-1]
+
+
+def partial_ratio(s1, s2):
+    """Calculate the partial ratio between two strings based on substring Levenshtein distance.
+
+    Args:
+        s1 (str): Smaller string.
+        s2 (str): Larger string or full string.
+
+    Returns:
+        float: Highest partial match score as a percentage.
+    """
+    if len(s1) &gt; len(s2):
+        s1, s2 = s2, s1
+
+    m = len(s1)
+    n = len(s2)
+    ratio = 0
+
+    for i in range(n - m + 1):
+        sub_string = s2[i:i + m]
+        dist = levenshtein_distance(s1, sub_string)
+        local_ratio = 100 - (dist / len(sub_string) * 100)
+        if local_ratio &gt; ratio:
+            ratio = local_ratio
+
+    return ratio
+
+prompts = []
+with open('./awesome-chatgpt-prompts/prompts.csv', 'r') as file:
+    reader = csv.DictReader(file)
+    for row in reader:
+        prompts.append((row['act'], row['prompt']))
+
+query = sys.argv[1]
+
+# Find and sort prompts by relevance score above a threshold
+results = []
+for act, prompt in prompts:
+    score = partial_ratio(query, act)
+    if score &gt; threshold:
+        results.append({"title": act, "subtitle": prompt, "arg": prompt, 
+                        "text": {"copy": prompt, "largetype": prompt}, "score": score})
+
+results.sort(key=lambda x: x['score'], reverse=True)
+
+output = {"items": results}
+print(json.dumps(output))</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>Enter a keyword to search for related GPT prompts using fuzzy matching.</string>
+				<key>title</key>
+				<string>Search Prompts</string>
+				<key>type</key>
+				<integer>9</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>4EC60211-ED6B-431B-ABC2-BEA54A9352FF</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+	</array>
+	<key>readme</key>
+	<string>The "GPT Prompter" is a workflow designed to enhance productivity and efficiency for users leveraging the capabilities of ChatGPT. It allows for the quick finding and copying of GPT prompts from the repository "awesome-chatgpt-prompts" available on GitHub.</string>
+	<key>uidata</key>
+	<dict>
+		<key>4EC60211-ED6B-431B-ABC2-BEA54A9352FF</key>
+		<dict>
+			<key>xpos</key>
+			<real>65</real>
+			<key>ypos</key>
+			<real>90</real>
+		</dict>
+		<key>81DF6708-722F-45CA-B380-BBF4FC11917C</key>
+		<dict>
+			<key>xpos</key>
+			<real>275</real>
+			<key>ypos</key>
+			<real>90</real>
+		</dict>
+	</dict>
+	<key>userconfigurationconfig</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>60</string>
+				<key>placeholder</key>
+				<string>60</string>
+				<key>required</key>
+				<true/>
+				<key>trim</key>
+				<false/>
+			</dict>
+			<key>description</key>
+			<string>The match degree between the input content and the role content</string>
+			<key>label</key>
+			<string></string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>Fuzzy_Threshold</string>
+		</dict>
+	</array>
+	<key>variablesdontexport</key>
+	<array/>
+	<key>version</key>
+	<string>1.0.0</string>
+	<key>webaddress</key>
+	<string>https://github.com/WilliamOdinson/PromptPilot</string>
+</dict>
+</plist>

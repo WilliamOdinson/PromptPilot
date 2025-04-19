@@ -22,6 +22,7 @@ jobs:
           zip -r dist/PromptPilot.zip \
             awesome-chatgpt-prompts \
             4EC60211-ED6B-431B-ABC2-BEA54A9352FF.png \
+            icon.png \
             info.plist \
             prefs.plist
 

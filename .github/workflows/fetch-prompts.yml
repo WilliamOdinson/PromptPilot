@@ -1,0 +1,39 @@
+name: Update prompts from awesome-chatgpt-prompts repository
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  update-prompts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Clone upstream repo
+        run: |
+          rm -rf awesome-chatgpt-prompts
+          git clone --depth=1 https://github.com/f/awesome-chatgpt-prompts.git upstream-temp
+
+      - name: Copy required files
+        run: |
+          mkdir -p awesome-chatgpt-prompts
+          cp upstream-temp/prompts.csv awesome-chatgpt-prompts/
+          cp upstream-temp/README.md awesome-chatgpt-prompts/
+          rm -rf upstream-temp
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add awesome-chatgpt-prompts/
+          if git diff --cached --quiet; then
+            echo "No changes detected, skipping commit."
+          else
+            git commit -m "chore: update awesome-chatgpt-prompts (automated)"
+            git push
+          fi
